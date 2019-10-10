@@ -24,9 +24,9 @@ let uniqueId = 0;
  */
 export function patchXMLHTTPRequest(beforeXHRSendCb, onRequestCompletedCb) {
   const send = XMLHttpRequest.prototype.send;
-  const requestId = uniqueId++;
 
   XMLHttpRequest.prototype.send = function(...args) { // No arrow function.
+    const requestId = uniqueId++;
     beforeXHRSendCb(requestId);
     this.addEventListener('readystatechange', () => {
       // readyState 4 corresponds to 'DONE'

@@ -43,14 +43,14 @@ const generateRollupBundle = (entryFilePath, outputFilePath) => {
 };
 
 
-const compileRollupBundle = (outputFilePath, defines, rollupBundle) => {
+const compileRollupBundle = (outputFilePath, defines, rollupBundle, minify) => {
   const closureResult = compile({
     jsCode: [{
       src: rollupBundle.code,
       path: path.basename(outputFilePath),
     }],
     defines: defines,
-    compilationLevel: 'ADVANCED',
+    compilationLevel: minify ? 'ADVANCED' : 'WHITESPACE_ONLY',
     useTypesForOptimization: true,
     outputWrapper:
         '(function(){%output%})();\n' +
@@ -126,10 +126,11 @@ const reportCompileErrorsAndExit = (outputFilePath, errors) => {
 };
 
 
-const build = (entryFilePath, outputFilePath, defines) => {
+const build = (entryFilePath, outputFilePath, defines, minify) => {
   generateRollupBundle(entryFilePath, outputFilePath)
       .then((rollupBundle) => {
-        return compileRollupBundle(outputFilePath, defines, rollupBundle);
+        return compileRollupBundle(outputFilePath, defines, rollupBundle,
+          minify);
       })
       .then((compiledBundle) => {
         return saveCompiledBundle(outputFilePath, compiledBundle);
@@ -141,5 +142,6 @@ const build = (entryFilePath, outputFilePath, defines) => {
 };
 
 
-build('src/umd-wrapper.js', 'tti-polyfill.js', {DEBUG: false});
-build('src/umd-wrapper.js', 'tti-polyfill-debug.js', {DEBUG: true});
+build('src/umd-wrapper.js', 'tti-polyfill.js', {DEBUG: false}, true);
+build('src/umd-wrapper.js', 'tti-polyfill-debug.js', {DEBUG: true}, false);
+build('src/umd-wrapper.js', 'tti-polyfill-debug.min.js', {DEBUG: true}, true);

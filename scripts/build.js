@@ -21,7 +21,7 @@
 
 // const chalk = require('chalk');
 const fs = require('fs-extra');
-const ClosureCompiler = require('google-closure-compiler').jsCompiler;
+const compiler = require('@ampproject/rollup-plugin-closure-compiler');
 const gzipSize = require('gzip-size');
 const {rollup} = require('rollup');
 const nodeResolve = require('rollup-plugin-node-resolve');
@@ -29,10 +29,31 @@ const path = require('path');
 // const {SourceMapGenerator, SourceMapConsumer} = require('source-map');
 
 
-const generateRollupBundle = (entryFilePath, outputFilePath) => {
+const generateRollupBundle =
+    (entryFilePath, outputFilePath, defines, minify) => {
+  const minifyOptions = {};
+  if (!minify) {
+    minifyOptions.formatting = 'PRETTY_PRINT';
+    minifyOptions.compilationLevel = 'WHITESPACE_ONLY';
+    minifyOptions.languageOut = 'ECMASCRIPT6';
+  } else {
+    minifyOptions.compilationLevel = 'ADVANCED';
+    minifyOptions.languageOut = 'ECMASCRIPT5';
+  }
+
   return rollup({
-    entry: entryFilePath,
-    plugins: [nodeResolve()],
+    input: entryFilePath,
+    plugins: [nodeResolve(), compiler(Object.assign({}, {
+      useTypesForOptimization: true,
+      outputWrapper:
+          `(function(){${defines}%output%})();\n` +
+          `//# sourceMappingURL=${path.basename(outputFilePath)}.map`,
+      assumeFunctionWrapper: true,
+      rewritePolyfills: false,
+      warningLevel: 'VERBOSE',
+      createSourceMap: true,
+      externs: './src/externs.js',
+    }, minifyOptions))],
   }).then((bundle) => {
     return bundle.generate({
       format: 'es',
@@ -42,41 +63,28 @@ const generateRollupBundle = (entryFilePath, outputFilePath) => {
   });
 };
 
-
-const compileRollupBundle = (outputFilePath, defines, rollupBundle, minify) => {
-  return new Promise((resolve, reject) => {
-    const closureCompiler = new ClosureCompiler({
-      defines: defines,
-      compilationLevel: minify ? 'ADVANCED' : 'WHITESPACE_ONLY',
-      // languageIn: 'ECMASCRIPT6',
-      languageOut: minify ? 'ECMASCRIPT6' : undefined,
-      useTypesForOptimization: true,
-      outputWrapper:
-          '(function(){%output%})();\n' +
-          `//# sourceMappingURL=${path.basename(outputFilePath)}.map`,
-      assumeFunctionWrapper: true,
-      rewritePolyfills: false,
-      warningLevel: 'VERBOSE',
-      createSourceMap: true,
-      externs: [{
-        src: fs.readFileSync('./src/externs.js', 'utf-8'),
-      }],
-    });
-
-    closureCompiler.run([{
+/* const compileRollupBundle = (outputFilePath, defines, rollupBundle) => {
+  const closureResult = compile({
+    jsCode: [{
       src: rollupBundle.code,
       path: path.basename(outputFilePath),
-    }], (exitCode, stdOut, stdErr) => {
-      if (exitCode !== 0) {
-        console.log(exitCode, stdErr);
-        reject(exitCode);
-      } else {
-        resolve(stdOut);
-      }
-    });
+    }],
+    defines: defines,
+    compilationLevel: 'ADVANCED',
+    useTypesForOptimization: true,
+    outputWrapper:
+        '(function(){%output%})();\n' +
+        `//# sourceMappingURL=${path.basename(outputFilePath)}.map`,
+    assumeFunctionWrapper: true,
+    rewritePolyfills: false,
+    warningLevel: 'VERBOSE',
+    createSourceMap: true,
+    externs: [{
+      src: fs.readFileSync('./src/externs.js', 'utf-8'),
+    }],
   });
 
-  /* if (closureResult.errors.length || closureResult.warnings.length) {
+  if (closureResult.errors.length || closureResult.warnings.length) {
     const rollupMap = new SourceMapConsumer(rollupBundle.map);
 
     // Remap errors from the closure compiler output to the original
@@ -112,11 +120,11 @@ const compileRollupBundle = (outputFilePath, defines, rollupBundle, minify) => {
       code: closureResult.compiledCode,
       map: sourceMap,
     };
-  }*/
-};
+  }
+};*/
 
 
-const saveCompiledBundle = (outputFilePath, [{src: code, sourceMap: map}]) => {
+const saveCompiledBundle = (outputFilePath, {code, map}) => {
   fs.outputFileSync(outputFilePath, code, 'utf-8');
   fs.outputFileSync(outputFilePath + '.map', map, 'utf-8');
   const size = (gzipSize.sync(code) / 1000).toFixed(1);
@@ -136,13 +144,9 @@ const saveCompiledBundle = (outputFilePath, [{src: code, sourceMap: map}]) => {
 };*/
 
 
-const build = (entryFilePath, outputFilePath, defines, minify = true) => {
-  generateRollupBundle(entryFilePath, outputFilePath)
-      .then((rollupBundle) => {
-        return compileRollupBundle(outputFilePath, defines, rollupBundle,
-          minify);
-      })
-      .then((compiledBundle) => {
+const build = (entryFilePath, outputFilePath, externs, minify = true) => {
+  generateRollupBundle(entryFilePath, outputFilePath, externs, minify)
+      .then(({output: [compiledBundle]}) => {
         return saveCompiledBundle(outputFilePath, compiledBundle);
       })
       .catch((err) => {
@@ -152,6 +156,6 @@ const build = (entryFilePath, outputFilePath, defines, minify = true) => {
 };
 
 
-build('src/umd-wrapper.js', 'tti-polyfill.js', {DEBUG: false});
-build('src/umd-wrapper.js', 'tti-polyfill-debug.js', {DEBUG: true}, false);
-build('src/umd-wrapper.js', 'tti-polyfill-debug.min.js', {DEBUG: true});
+build('src/umd-wrapper.js', 'tti-polyfill.js', 'var DEBUG=false;');
+build('src/umd-wrapper.js', 'tti-polyfill-debug.js', 'var DEBUG=true;', false);
+build('src/umd-wrapper.js', 'tti-polyfill-debug.min.js', 'var DEBUG=true;');

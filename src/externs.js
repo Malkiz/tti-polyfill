@@ -47,3 +47,17 @@ var FirstConsistentlyInteractiveDetectorInit;
  */
 function PerformanceObserverEntry() {}
 
+
+/**
+ * @param {!PerformanceObserverInit} options
+ */
+PerformanceObserver.prototype.observe = function(options) {};
+
+
+PerformanceObserver.prototype.disconnect = function() {};
+
+
+/**
+ * @define {boolean}
+ */
+const DEBUG = false;

@@ -14,16 +14,11 @@
 
 
 /**
- * @define {boolean}
- */
-const DEBUG = true;
-
-
-/**
  * Prints a log statement to the console if the DEBUG flag is true.
  * @param {...*} args
  */
 export const log = (...args) => {
+	// eslint-disable-next-line no-undef
   if (DEBUG) {
     // eslint-disable-next-line no-console
     console.log(...args);

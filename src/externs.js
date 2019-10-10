@@ -47,33 +47,3 @@ var FirstConsistentlyInteractiveDetectorInit;
  */
 function PerformanceObserverEntry() {}
 
-
-/**
- * Options for the PerformanceObserver.
- * @typedef {{
- *   entryTypes: (Array<string>),
- * }}
- */
-var PerformanceObserverInit;
-
-
-/**
- * @param {!function(!Performance, !PerformanceObserver)} callback
- * @constructor
- */
-function PerformanceObserver(callback) {}
-
-
-/**
- * @param {!PerformanceObserverInit} options
- */
-PerformanceObserver.prototype.observe = function(options) {};
-
-
-PerformanceObserver.prototype.disconnect = function() {};
-
-
-/**
- * @constructor
- */
-function PerformanceLongTaskTiming() {}

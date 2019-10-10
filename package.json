@@ -25,7 +25,7 @@
     "eslint": "^4.0.0",
     "eslint-config-google": "^0.8.0",
     "fs-extra": "^3.0.1",
-    "google-closure-compiler-js": "^20170521.0.0",
+    "google-closure-compiler": "20190929.0.0",
     "gzip-size": "^3.0.0",
     "rollup": "^0.41.6",
     "rollup-plugin-node-resolve": "^3.0.0",

@@ -16,7 +16,7 @@
 /**
  * @define {boolean}
  */
-let DEBUG = true;
+const DEBUG = true;
 
 
 /**

@@ -50,7 +50,9 @@ export default class FirstConsistentlyInteractiveDetector {
     if (snippetEntries) {
       log(`Consuming the long task entries already recorded.`);
 
-      this._longTasks = snippetEntries.map((performanceEntry) => {
+      this._longTasks = snippetEntries
+      .filter((performanceEntry) => performanceEntry.entryType === 'longtask')
+      .map((performanceEntry) => {
         return {
           start: performanceEntry.startTime,
           end: performanceEntry.startTime + performanceEntry.duration,

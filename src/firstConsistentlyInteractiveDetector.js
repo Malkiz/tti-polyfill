@@ -48,18 +48,28 @@ export default class FirstConsistentlyInteractiveDetector {
     // If we recorded some long tasks before this class was initialized,
     // consume them now.
     if (snippetEntries) {
-      log(`Consuming the long task entries already recorded.`);
+      log(`Consuming the long task & network entries already recorded.`);
 
       this._longTasks = snippetEntries
-      .filter((performanceEntry) => performanceEntry.entryType === 'longtask')
-      .map((performanceEntry) => {
-        return {
-          start: performanceEntry.startTime,
-          end: performanceEntry.startTime + performanceEntry.duration,
-        };
-      });
+        .filter((performanceEntry) => performanceEntry.entryType === 'longtask')
+        .map((performanceEntry) => {
+          return {
+            start: performanceEntry.startTime,
+            end: performanceEntry.startTime + performanceEntry.duration,
+          };
+        });
+
+      this._networkRequests = snippetEntries
+        .filter((performanceEntry) => performanceEntry.entryType === 'resource')
+        .map((performanceEntry) => {
+          return {
+            start: performanceEntry.fetchStart,
+            end: performanceEntry.responseEnd,
+          };
+        });
     } else {
       this._longTasks = [];
+      this._networkRequests = [];
     }
 
     // If we had a long task observer attached by the snippet, disconnect it
@@ -69,7 +79,6 @@ export default class FirstConsistentlyInteractiveDetector {
       snippetObserver.disconnect();
     }
 
-    this._networkRequests = [];
     this._incompleteJSInitiatedRequestStartTimes = new Map();
 
     this._timerId = null;

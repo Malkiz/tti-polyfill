@@ -14,6 +14,22 @@
 
 
 let uniqueId = 0;
+const originals = {};
+const proxies = {};
+
+/**
+ * Checks that the XHR / Fetch objects were not modified further in between,
+ * and if so resets them to the original functions.
+ */
+export function resetOriginals() {
+  if (originals.send && XMLHttpRequest.prototype.send === proxies.send) {
+    XMLHttpRequest.prototype.send = originals.send;
+  }
+  if (originals.fetch && fetch === proxies.fetch) {
+    // eslint-disable-next-line no-global-assign
+    fetch = originals.fetch;
+  }
+}
 
 
 /**
@@ -23,16 +39,17 @@ let uniqueId = 0;
  * @param {!Function} onRequestCompletedCb
  */
 export function patchXMLHTTPRequest(beforeXHRSendCb, onRequestCompletedCb) {
-  const send = XMLHttpRequest.prototype.send;
+  originals.send = XMLHttpRequest.prototype.send;
 
-  XMLHttpRequest.prototype.send = function(...args) { // No arrow function.
+  // eslint-disable-next-line max-len
+  XMLHttpRequest.prototype.send = proxies.send = function(...args) { // No arrow function.
     const requestId = uniqueId++;
     beforeXHRSendCb(requestId);
     this.addEventListener('readystatechange', () => {
       // readyState 4 corresponds to 'DONE'
       if (this.readyState === 4) onRequestCompletedCb(requestId);
     });
-    return send.apply(this, args);
+    return originals.send.apply(this, args);
   };
 }
 
@@ -44,16 +61,16 @@ export function patchXMLHTTPRequest(beforeXHRSendCb, onRequestCompletedCb) {
  * @param {!Function} afterRequestCb
  */
 export function patchFetch(beforeRequestCb, afterRequestCb) {
-  const originalFetch = fetch;
+  originals.fetch = fetch;
 
   // TODO(philipwalton): assign this to a property of the global variable
   // explicitely rather than implicitely.
   // eslint-disable-next-line no-global-assign
-  fetch = (...args) => {
+  fetch = proxies.fetch = (...args) => {
     return new Promise((resolve, reject) => {
       const requestId = uniqueId++;
       beforeRequestCb(requestId);
-      originalFetch(...args).then(
+      originals.fetch(...args).then(
           (value) => {
             afterRequestCb(requestId);
             resolve(value);

@@ -214,11 +214,10 @@ export default class FirstConsistentlyInteractiveDetector {
    * Removes all added listeners.
    */
   _unregisterListeners() {
-    // We will leave the XHR / Fetch objects the way they were,
-    // since we cannot guarantee they were not modified further in between.
-    // Only unregister performance observers.
+    // unregister performance observers and XHR and fetch.
     if (this._performanceObserver) this._performanceObserver.disconnect();
     if (this._mutationObserver) this._mutationObserver.disconnect();
+    activityTrackerUtils.resetOriginals();
   }
 
   /**

@@ -27,10 +27,19 @@ module.exports;
 window.ttiPolyfill;
 window.ttiPolyfill.getFirstConsistentlyInteractive = function() {};
 
+/**
+ * @typedef {{
+ *   e: (Array<PerformanceEntry>|undefined),
+ *   o: (PerformanceObserver|undefined)
+ * }}
+ */
+var TTIConfig;
 
 /**
  * @typedef {{
  *   useMutationObserver: (boolean|undefined),
+ *   minValue: (numver|undefined),
+ *   __tti: (TTIConfig|undefined)
  * }}
  */
 var FirstConsistentlyInteractiveDetectorInit;
@@ -55,3 +64,11 @@ PerformanceObserver.prototype.disconnect = function() {};
  * @define {boolean}
  */
 const DEBUG = false;
+
+/**
+ * @typedef {{
+ *   beforeCb: (!Function)
+ *   afterCb: (!Function)
+ * }}
+ */
+var ProxyConfig;

@@ -21,13 +21,14 @@ import {log} from './debug.js';
 import * as firstConsistentlyInteractiveCore
     from './firstConsistentlyInteractiveCore.js';
 
+const noop = () => {};
 
 /**
  * Class to detect first consistently interactive.
  */
 export default class FirstConsistentlyInteractiveDetector {
   /**
-   * @param {!FirstConsistentlyInteractiveDetectorInit=} config
+   * @param {!FirstConsistentlyInteractiveDetectorInit} config
    */
   constructor(config = {}) {
     this._useMutationObserver = !!config.useMutationObserver;
@@ -193,13 +194,14 @@ export default class FirstConsistentlyInteractiveDetector {
    * DOM mutations to detect long tasks and network quiescence.
    */
   _registerListeners() {
-    activityTrackerUtils.patchXMLHTTPRequest(
-        this._beforeJSInitiatedRequestCallback.bind(this),
-        this._afterJSInitiatedRequestCallback.bind(this));
+    /** @type {ProxyConfig} */
+    this._proxyConfig = {
+      beforeCb: this._beforeJSInitiatedRequestCallback.bind(this),
+      afterCb: this._afterJSInitiatedRequestCallback.bind(this),
+    };
 
-    activityTrackerUtils.patchFetch(
-        this._beforeJSInitiatedRequestCallback.bind(this),
-        this._afterJSInitiatedRequestCallback.bind(this));
+    activityTrackerUtils.patchXMLHTTPRequest(this._proxyConfig);
+    activityTrackerUtils.patchFetch(this._proxyConfig);
 
     this._registerPerformanceObserver();
 
@@ -218,6 +220,10 @@ export default class FirstConsistentlyInteractiveDetector {
     if (this._performanceObserver) this._performanceObserver.disconnect();
     if (this._mutationObserver) this._mutationObserver.disconnect();
     activityTrackerUtils.resetOriginals();
+    if (this._proxyConfig) {
+      this._proxyConfig.beforeCb = noop;
+      this._proxyConfig.afterCb = noop;
+    }
   }
 
   /**

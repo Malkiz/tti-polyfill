@@ -35,19 +35,18 @@ export function resetOriginals() {
 /**
  * Overrides the native XHR send method in order to keep track of in-flight
  * network requests.
- * @param {!Function} beforeXHRSendCb
- * @param {!Function} onRequestCompletedCb
+ * @param {!ProxyConfig} config
  */
-export function patchXMLHTTPRequest(beforeXHRSendCb, onRequestCompletedCb) {
+export function patchXMLHTTPRequest(config) {
   originals.send = XMLHttpRequest.prototype.send;
 
   // eslint-disable-next-line max-len
   XMLHttpRequest.prototype.send = proxies.send = function(...args) { // No arrow function.
     const requestId = uniqueId++;
-    beforeXHRSendCb(requestId);
+    config.beforeCb(requestId);
     this.addEventListener('readystatechange', () => {
       // readyState 4 corresponds to 'DONE'
-      if (this.readyState === 4) onRequestCompletedCb(requestId);
+      if (this.readyState === 4) config.afterCb(requestId);
     });
     return originals.send.apply(this, args);
   };
@@ -57,10 +56,9 @@ export function patchXMLHTTPRequest(beforeXHRSendCb, onRequestCompletedCb) {
 /**
  * Overrides the native fetch() in order to keep track of in-flight network
  * requests.
- * @param {!Function} beforeRequestCb
- * @param {!Function} afterRequestCb
+ * @param {!ProxyConfig} config
  */
-export function patchFetch(beforeRequestCb, afterRequestCb) {
+export function patchFetch(config) {
   originals.fetch = fetch;
 
   // TODO(philipwalton): assign this to a property of the global variable
@@ -69,14 +67,14 @@ export function patchFetch(beforeRequestCb, afterRequestCb) {
   fetch = proxies.fetch = (...args) => {
     return new Promise((resolve, reject) => {
       const requestId = uniqueId++;
-      beforeRequestCb(requestId);
+      config.beforeCb(requestId);
       originals.fetch(...args).then(
           (value) => {
-            afterRequestCb(requestId);
+            config.afterCb(requestId);
             resolve(value);
           },
           (err) => {
-            afterRequestCb(err);
+            config.afterCb(err);
             reject(err);
           });
     });

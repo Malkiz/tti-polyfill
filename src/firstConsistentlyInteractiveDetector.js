@@ -280,7 +280,8 @@ export default class FirstConsistentlyInteractiveDetector {
     this._addNetworkEntry(performanceEntry);
     this.rescheduleTimer(
         firstConsistentlyInteractiveCore.computeLastKnownNetwork2Busy(
-            this._incompleteRequestStarts, this._networkRequests) + 5000);
+            this._incompleteRequestStarts, this._networkRequests)
+            + this._quietWindow);
   }
 
   /**
@@ -306,7 +307,7 @@ export default class FirstConsistentlyInteractiveDetector {
     log(`Long task finished`, performanceEntry);
 
     const item = this._addLongTaskEntry(performanceEntry);
-    this.rescheduleTimer(item.end + 5000);
+    this.rescheduleTimer(item.end + this._quietWindow);
   }
 
   /**
@@ -336,7 +337,7 @@ export default class FirstConsistentlyInteractiveDetector {
 
     log(`Pushing back FirstConsistentlyInteractive check by 5 seconds.`);
 
-    this.rescheduleTimer(performance.now() + 5000);
+    this.rescheduleTimer(performance.now() + this._quietWindow);
   }
 
   /**
@@ -365,6 +366,17 @@ export default class FirstConsistentlyInteractiveDetector {
   }
 
   /**
+   * Gets the current required quiet window length, in ms
+   * @return {number}
+   */
+  get _quietWindow() {
+    const min = this._getMinValue();
+    const t = min !== null ? (performance.now() - min) / 1000 : 0;
+    // formula: f(t) = 4 * e^(-0.045 * t) + 1
+    return (4 * Math.pow(Math.E, -0.045 * t) + 1) * 1000;
+  }
+
+  /**
    * Checks to see if a first consistently interactive time has been found.
    * If one has been found, the promise resolver is invoked with the time. If
    * no time has been found, the timeout detecting the quiet window is reset.
@@ -386,13 +398,15 @@ export default class FirstConsistentlyInteractiveDetector {
 
     const minValue = this._getMinValue();
     const currentTime = performance.now();
+    const quietWindow = this._quietWindow;
 
     // Ideally we will only start scheduling timers after DOMContentLoaded and
     // this case should never be hit.
     if (minValue === null) {
       log(`No usable minimum value yet. Postponing check.`);
 
-      this.rescheduleTimer(Math.max(lastBusy + 5000, currentTime + 1000));
+      this.rescheduleTimer(Math.max(lastBusy + quietWindow,
+        currentTime + 1000));
     }
 
     log(`Parameter values:`);
@@ -405,16 +419,18 @@ export default class FirstConsistentlyInteractiveDetector {
     log(`Long tasks`, this._longTasks);
     log(`Incomplete JS Request Start Times`, this._incompleteRequestStarts);
     log(`Network requests`, this._networkRequests);
+    log(`Quiet window`, quietWindow);
 
     const maybeFCI =
         firstConsistentlyInteractiveCore.computeFirstConsistentlyInteractive(
             searchStart, /** @type {number} */ (minValue), lastBusy,
-            currentTime, this._longTasks);
+            currentTime, this._longTasks, quietWindow);
 
     if (maybeFCI) {
       this._firstConsistentlyInteractiveResolver(
           /** @type {number} */ (maybeFCI));
       this.disable();
+      return;
     }
 
     // First Consistently Interactive was not reached for whatever reasons.

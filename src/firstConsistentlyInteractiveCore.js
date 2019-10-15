@@ -20,10 +20,12 @@
  * @param {number} lastKnownNetwork2Busy
  * @param {number} currentTime
  * @param {!Array<{start: (number), end: (number)}>} longTasks
+ * @param {number} quietWindow
  * @return {number|null}
  */
 export const computeFirstConsistentlyInteractive =
-    (searchStart, minValue, lastKnownNetwork2Busy, currentTime, longTasks) => {
+    (searchStart, minValue, lastKnownNetwork2Busy, currentTime, longTasks,
+      quietWindow) => {
   // Have not reached network 2-quiet yet.
   if ((currentTime - lastKnownNetwork2Busy) < 5000) return null;
 
@@ -31,7 +33,7 @@ export const computeFirstConsistentlyInteractive =
       searchStart : longTasks[longTasks.length - 1].end;
 
   // Main thread has not been quiet for long enough.
-  if (currentTime - maybeFCI < 5000) return null;
+  if (currentTime - maybeFCI < quietWindow) return null;
 
   return Math.max(maybeFCI, minValue);
 };

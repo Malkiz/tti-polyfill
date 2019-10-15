@@ -127,14 +127,6 @@ export default class FirstConsistentlyInteractiveDetector {
   }
 
   /**
-   * Setter for the `_minValue` property.
-   * @param {number} minValue
-   */
-  setMinValue(minValue) {
-    this._minValue = minValue;
-  }
-
-  /**
    * Resets the timer that checks for network quiescence.
    * @param {number} earliestTime A timestamp in ms, and the time is relative
    *     to navigationStart.

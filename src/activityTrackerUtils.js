@@ -74,7 +74,7 @@ export function patchFetch(config) {
             resolve(value);
           },
           (err) => {
-            config.afterCb(err);
+            config.afterCb(requestId, err);
             reject(err);
           });
     });

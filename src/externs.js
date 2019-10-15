@@ -37,6 +37,14 @@ var TTIConfig;
 
 /**
  * @typedef {{
+ *   start: (number),
+ *   end: (number)
+ * }}
+ */
+var PerformanceEntryItem;
+
+/**
+ * @typedef {{
  *   useMutationObserver: (boolean|undefined),
  *   minValue: (numver|undefined),
  *   __tti: (TTIConfig|undefined),

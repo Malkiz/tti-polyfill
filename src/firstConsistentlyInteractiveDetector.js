@@ -45,31 +45,22 @@ export default class FirstConsistentlyInteractiveDetector {
     /** @type {PerformanceObserver|undefined} */
     const snippetObserver = config.__tti && config.__tti.o;
 
+    this._longTasks = [];
+    this._networkRequests = [];
+
     // If we recorded some long tasks before this class was initialized,
     // consume them now.
     if (snippetEntries) {
       log(`Consuming the long task & network entries already recorded.`);
 
-      this._longTasks = snippetEntries
-        .filter((performanceEntry) => performanceEntry.entryType === 'longtask')
-        .map((performanceEntry) => {
-          return {
-            start: performanceEntry.startTime,
-            end: performanceEntry.startTime + performanceEntry.duration,
-          };
+      snippetEntries
+        .forEach((performanceEntry) => {
+          if (performanceEntry.entryType === 'longtask') {
+            this._addLongTaskEntry(performanceEntry);
+          } else if (performanceEntry.entryType === 'resource') {
+            this._addNetworkEntry(performanceEntry);
+          }
         });
-
-      this._networkRequests = snippetEntries
-        .filter((performanceEntry) => performanceEntry.entryType === 'resource')
-        .map((performanceEntry) => {
-          return {
-            start: performanceEntry.fetchStart,
-            end: performanceEntry.responseEnd,
-          };
-        });
-    } else {
-      this._longTasks = [];
-      this._networkRequests = [];
     }
 
     // If we had a long task observer attached by the snippet, disconnect it
@@ -276,13 +267,24 @@ export default class FirstConsistentlyInteractiveDetector {
   _networkRequestFinishedCallback(performanceEntry) {
     log(`Network request finished`, performanceEntry);
 
-    this._networkRequests.push({
-      start: performanceEntry.fetchStart,
-      end: performanceEntry.responseEnd,
-    });
+    this._addNetworkEntry(performanceEntry);
     this.rescheduleTimer(
         firstConsistentlyInteractiveCore.computeLastKnownNetwork2Busy(
             this._incompleteRequestStarts, this._networkRequests) + 5000);
+  }
+
+  /**
+   * This adds the entry to the array of network requests
+   * @param {PerformanceEntry} performanceEntry
+   * @return {PerformanceEntryItem}
+   */
+  _addNetworkEntry(performanceEntry) {
+    const item = {
+      start: performanceEntry.fetchStart,
+      end: performanceEntry.responseEnd,
+    };
+    this._networkRequests.push(item);
+    return item;
   }
 
   /**
@@ -293,13 +295,24 @@ export default class FirstConsistentlyInteractiveDetector {
   _longTaskFinishedCallback(performanceEntry) {
     log(`Long task finished`, performanceEntry);
 
+    const item = this._addLongTaskEntry(performanceEntry);
+    this.rescheduleTimer(item.end + 5000);
+  }
+
+  /**
+   * This adds the entry to the array of long tasks
+   * @param {PerformanceEntry} performanceEntry
+   * @return {PerformanceEntryItem}
+   */
+  _addLongTaskEntry(performanceEntry) {
     const taskEndTime = performanceEntry.startTime +
           performanceEntry.duration;
-    this._longTasks.push({
+    const item = {
       start: performanceEntry.startTime,
       end: taskEndTime,
-    });
-    this.rescheduleTimer(taskEndTime + 5000);
+    };
+    this._longTasks.push(item);
+    return item;
   }
 
   /**

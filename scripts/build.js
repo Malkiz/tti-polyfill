@@ -82,6 +82,9 @@ const build = (entryFilePath, outputFilePath, externs, minify = true) => {
 };
 
 
-build('src/umd-wrapper.js', 'tti-polyfill.js', 'var DEBUG=false;');
-build('src/umd-wrapper.js', 'tti-polyfill-debug.js', 'var DEBUG=true;', false);
-build('src/umd-wrapper.js', 'tti-polyfill-debug.min.js', 'var DEBUG=true;');
+build('src/umd-wrapper.js', 'dist/tti-polyfill.js', 'var DEBUG=false;');
+build('src/umd-wrapper.js', 'dist/tti-polyfill-debug.js', 'var DEBUG=true;', false); // eslint-disable-line max-len
+build('src/umd-wrapper.js', 'dist/tti-polyfill-debug.min.js', 'var DEBUG=true;'); // eslint-disable-line max-len
+
+build('src/module-wrapper.js', 'dist/tti-polyfill-module.js', 'var DEBUG=false;'); // eslint-disable-line max-len
+build('src/module-wrapper.js', 'dist/tti-polyfill-module-debug.js', 'var DEBUG=true;', false); // eslint-disable-line max-len

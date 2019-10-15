@@ -36,10 +36,10 @@ export default class FirstConsistentlyInteractiveDetector {
     this._minValue = config.minValue || null;
 
     /** @type {Array<PerformanceEntry>|undefined} */
-    const snippetEntries = window.__tti && window.__tti.e;
+    const snippetEntries = config.__tti && config.__tti.e;
 
     /** @type {PerformanceObserver|undefined} */
-    const snippetObserver = window.__tti && window.__tti.o;
+    const snippetObserver = config.__tti && config.__tti.o;
 
     // If we recorded some long tasks before this class was initialized,
     // consume them now.

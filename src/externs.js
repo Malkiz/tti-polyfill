@@ -28,12 +28,6 @@ window.ttiPolyfill;
 window.ttiPolyfill.getFirstConsistentlyInteractive = function() {};
 
 
-// TTI Polyfill snippet variables.
-window.__tti;
-window.__tti.o;
-window.__tti.e;
-
-
 /**
  * @typedef {{
  *   useMutationObserver: (boolean|undefined),

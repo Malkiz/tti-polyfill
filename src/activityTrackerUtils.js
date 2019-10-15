@@ -112,10 +112,6 @@ function subtreeContainsNodeName(nodes, nodeNames) {
  */
 export function observeResourceFetchingMutations(callback) {
   const mutationObserver = new MutationObserver((mutations) => {
-    // Typecast to fix: https://github.com/google/closure-compiler/issues/2539
-    // eslint-disable-next-line no-self-assign
-    mutations = /** @type {!Array<!MutationRecord>} */ (mutations);
-
     for (const mutation of mutations) {
       if (mutation.type == 'childList' &&
           subtreeContainsNodeName(

@@ -2,7 +2,7 @@
   "name": "tti-polyfill",
   "version": "0.2.2",
   "description": "Polyfill for Time to Interactive. See https://goo.gl/OSmrPk",
-  "main": "tti-polyfill.js",
+  "main": "dist/tti-polyfill.js",
   "scripts": {
     "lint": "eslint --fix src/*.js scripts/*.js tests/*.js",
     "build": "npm run lint && node scripts/build.js"

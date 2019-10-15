@@ -174,6 +174,7 @@ export default class FirstConsistentlyInteractiveDetector {
     this.clearTimeout(this._timerId);
     this._scheduleTimerTasks = false;
     this._unregisterListeners();
+    this._clearReferences();
   }
 
   /**
@@ -229,6 +230,15 @@ export default class FirstConsistentlyInteractiveDetector {
       this._proxyConfig.beforeCb = noop;
       this._proxyConfig.afterCb = noop;
     }
+  }
+
+  /**
+   * Clears all references to objects that should be garbaga-collected
+   */
+  _clearReferences() {
+    this._longTasks = [];
+    this._networkRequests = [];
+    this._incompleteJSInitiatedRequestStartTimes = new Map();
   }
 
   /**

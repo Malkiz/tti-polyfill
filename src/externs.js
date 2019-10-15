@@ -39,7 +39,9 @@ var TTIConfig;
  * @typedef {{
  *   useMutationObserver: (boolean|undefined),
  *   minValue: (numver|undefined),
- *   __tti: (TTIConfig|undefined)
+ *   __tti: (TTIConfig|undefined),
+ *   setTimeout: (!Function|undefined),
+ *   clearTimeout: (!Function|undefined)
  * }}
  */
 var FirstConsistentlyInteractiveDetectorInit;

@@ -31,6 +31,9 @@ export default class FirstConsistentlyInteractiveDetector {
    * @param {!FirstConsistentlyInteractiveDetectorInit} config
    */
   constructor(config = {}) {
+    this.setTimeout = config.setTimeout || setTimeout;
+    this.clearTimeout = config.clearTimeout || clearTimeout;
+
     this._useMutationObserver = !!config.useMutationObserver;
 
     // If minValue is null, by default it is DOMContentLoadedEnd.
@@ -151,8 +154,8 @@ export default class FirstConsistentlyInteractiveDetector {
 
       return;
     }
-    clearTimeout(this._timerId);
-    this._timerId = setTimeout(() => {
+    this.clearTimeout(this._timerId);
+    this._timerId = this.setTimeout(() => {
       this._checkTTI();
     }, earliestTime - performance.now());
     this._timerActivationTime = earliestTime;
@@ -166,7 +169,7 @@ export default class FirstConsistentlyInteractiveDetector {
   disable() {
     log(`Disabling FirstConsistentlyInteractiveDetector`);
 
-    clearTimeout(this._timerId);
+    this.clearTimeout(this._timerId);
     this._scheduleTimerTasks = false;
     this._unregisterListeners();
   }

@@ -29,14 +29,66 @@ export const computeFirstConsistentlyInteractive =
   // Have not reached network 2-quiet yet.
   if ((currentTime - lastKnownNetwork2Busy) < 5000) return null;
 
-  const maybeFCI = longTasks.length === 0 ?
-      searchStart : longTasks[longTasks.length - 1].end;
+  const maybeFCI =
+    lastNonLonelyTaskEnd(searchStart, currentTime, quietWindow, longTasks);
 
   // Main thread has not been quiet for long enough.
   if (currentTime - maybeFCI < quietWindow) return null;
 
   return Math.max(maybeFCI, minValue);
 };
+
+
+/**
+ * Computes the end of the last non-lonely task
+ * @param {number} searchStart
+ * @param {number} currentTime
+ * @param {number} quietWindow
+ * @param {!Array<{start: (number), end: (number)}>} longTasks
+ * @return {number}
+ */
+function lastNonLonelyTaskEnd(searchStart, currentTime, quietWindow,
+    longTasks) {
+  const minLonelyTaskTime = searchStart + 5000;
+  const quietWindowStart = currentTime - quietWindow;
+
+  // no lonely tasks allowed yet
+  if (quietWindowStart < minLonelyTaskTime) {
+    return longTasks.length === 0 ?
+      searchStart : longTasks[longTasks.length - 1].end;
+  }
+
+  const maybeLonelyTasks = longTasks.filter((t) => t.start > minLonelyTaskTime);
+  const regularTasks = longTasks.filter((t) => t.start <= minLonelyTaskTime);
+  const minEnd = regularTasks.length === 0 ?
+      searchStart : regularTasks[regularTasks.length - 1].end;
+
+  // no tasks in the quiet window
+  if (maybeLonelyTasks.length === 0) {
+    return minEnd;
+  }
+
+  // search for the last non-lonely task
+  const lastTask = maybeLonelyTasks[maybeLonelyTasks.length - 1];
+  let currBlock = {start: lastTask.start, end: lastTask.end};
+  if (currBlock.end - currBlock.start > 250) {
+    return currBlock.end;
+  }
+
+  for (let i = maybeLonelyTasks.length - 2; i >= 0; i--) {
+    const currTask = maybeLonelyTasks[i];
+    if (currTask.end < currBlock.start - 1000) {
+      currBlock = {start: currTask.start, end: currTask.end};
+    } else {
+      currBlock.start = currTask.start;
+    }
+    if (currBlock.end - currBlock.start > 250) {
+      return currBlock.end;
+    }
+  }
+
+  return minEnd;
+}
 
 
 /**

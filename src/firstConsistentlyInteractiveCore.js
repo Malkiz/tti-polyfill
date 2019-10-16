@@ -57,44 +57,40 @@ function lastNonLonelyTaskEnd(searchStart, longTasks) {
 
   const maybeLonelyTasks = longTasks.filter((t) => t.start > minLonelyTaskTime);
   const regularTasks = longTasks.filter((t) => t.start <= minLonelyTaskTime);
-  const quietWindowStart = regularTasks.length === 0 ?
+  let minEnd = regularTasks.length === 0 ?
     searchStart : regularTasks[regularTasks.length - 1].end;
-  let minEnd = quietWindowStart;
 
   // no tasks in the quiet window
   if (maybeLonelyTasks.length === 0) {
     return minEnd;
   }
 
-  let currentQuietWindow = calcQuietWindow(minEnd - searchStart);
-  let currBlock = {start: quietWindowStart, end: minEnd};
+
+  const updateBlock = () => {
+    if (currBlock.end - currBlock.start > 250) {
+      // current block is too big - start looking again
+      minEnd = Math.max(minEnd, currBlock.end);
+      currentQuietWindow = calcQuietWindow(minEnd - searchStart);
+    }
+  };
+  let currentQuietWindow;
+  let currBlock = {start: minEnd - 1000, end: minEnd};
+  updateBlock();
   for (let i = 0; i < maybeLonelyTasks.length; i++) {
     const currTask = maybeLonelyTasks[i];
 
     if (currTask.start < currBlock.end + 1000) {
       // current task joins the current block
       currBlock.end = currTask.end;
+      updateBlock();
     } else if (currTask.start > minEnd + currentQuietWindow) {
-      if (currBlock.end - currBlock.start > 250 && !currTask.redo) {
-        // current block is too big - start looking again
-        minEnd = Math.max(minEnd, currBlock.end);
-        currentQuietWindow = calcQuietWindow(minEnd - searchStart);
-        currTask.redo = true;
-        i--;
-        continue;
-      } else {
-        // current task is outside the quiet window - we can stop
-        break;
-      }
+      // current task is outside the quiet window - we can stop
+      break;
     } else {
       // current task starts a new block
       currBlock = {start: currTask.start, end: currTask.end};
+      updateBlock();
     }
-  }
-
-  if (currBlock.end - currBlock.start > 250) {
-    // current block is too big
-    return Math.max(minEnd, currBlock.end);
   }
 
   return minEnd;

@@ -59,7 +59,7 @@ The following table outlines the configuration options you can pass to the `getF
     <td><code>useMutationObserver</code></td>
     <td><code>boolean</code></td>
     <td>
-      When `true` (default is `false`), a mutation observer is used to detect when added DOM elements will create additional network requests. This can be disabled to improve performance in cases where you know no additional request-creating DOM elements will be added.
+      When <code>true</code> (default is <code>false</code>), a mutation observer is used to detect when added DOM elements will create additional network requests. This can be disabled to improve performance in cases where you know no additional request-creating DOM elements will be added.
     </td>
   </tr>
   <tr valign="top">

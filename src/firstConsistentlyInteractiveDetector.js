@@ -371,9 +371,8 @@ export default class FirstConsistentlyInteractiveDetector {
    */
   get _quietWindow() {
     const min = this._getMinValue();
-    const t = min !== null ? (performance.now() - min) / 1000 : 0;
-    // formula: f(t) = 4 * e^(-0.045 * t) + 1
-    return (4 * Math.pow(Math.E, -0.045 * t) + 1) * 1000;
+    const t = min !== null ? performance.now() - min : 0;
+    return firstConsistentlyInteractiveCore.calcQuietWindow(t);
   }
 
   /**
@@ -398,14 +397,13 @@ export default class FirstConsistentlyInteractiveDetector {
 
     const minValue = this._getMinValue();
     const currentTime = performance.now();
-    const quietWindow = this._quietWindow;
 
     // Ideally we will only start scheduling timers after DOMContentLoaded and
     // this case should never be hit.
     if (minValue === null) {
       log(`No usable minimum value yet. Postponing check.`);
 
-      this.rescheduleTimer(Math.max(lastBusy + quietWindow,
+      this.rescheduleTimer(Math.max(lastBusy + this._quietWindow,
         currentTime + 1000));
     }
 
@@ -419,12 +417,11 @@ export default class FirstConsistentlyInteractiveDetector {
     log(`Long tasks`, this._longTasks);
     log(`Incomplete JS Request Start Times`, this._incompleteRequestStarts);
     log(`Network requests`, this._networkRequests);
-    log(`Quiet window`, quietWindow);
 
     const maybeFCI =
         firstConsistentlyInteractiveCore.computeFirstConsistentlyInteractive(
             searchStart, /** @type {number} */ (minValue), lastBusy,
-            currentTime, this._longTasks, quietWindow);
+            currentTime, this._longTasks);
 
     if (maybeFCI) {
       this._firstConsistentlyInteractiveResolver(

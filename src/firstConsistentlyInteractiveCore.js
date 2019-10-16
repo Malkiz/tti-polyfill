@@ -20,71 +20,81 @@
  * @param {number} lastKnownNetwork2Busy
  * @param {number} currentTime
  * @param {!Array<{start: (number), end: (number)}>} longTasks
- * @param {number} quietWindow
  * @return {number|null}
  */
 export const computeFirstConsistentlyInteractive =
-    (searchStart, minValue, lastKnownNetwork2Busy, currentTime, longTasks,
-      quietWindow) => {
+    (searchStart, minValue, lastKnownNetwork2Busy, currentTime, longTasks) => {
   // Have not reached network 2-quiet yet.
   if ((currentTime - lastKnownNetwork2Busy) < 5000) return null;
 
-  const maybeFCI =
-    lastNonLonelyTaskEnd(searchStart, currentTime, quietWindow, longTasks);
+  const maybeFCI = lastNonLonelyTaskEnd(searchStart, longTasks);
 
   // Main thread has not been quiet for long enough.
-  if (currentTime - maybeFCI < quietWindow) return null;
+  if (currentTime - maybeFCI < calcQuietWindow(maybeFCI)) return null;
 
   return Math.max(maybeFCI, minValue);
 };
+
+/**
+ * Computes the required quiet window length, in ms
+ * @param {number} t - time in ms
+ * @return {number}
+ */
+export function calcQuietWindow(t) {
+  // formula: f(t) = 4 * e^(-0.045 * t) + 1
+  return (4 * Math.pow(Math.E, -0.045 * (t / 1000)) + 1) * 1000;
+}
 
 
 /**
  * Computes the end of the last non-lonely task
  * @param {number} searchStart
- * @param {number} currentTime
- * @param {number} quietWindow
  * @param {!Array<{start: (number), end: (number)}>} longTasks
  * @return {number}
  */
-function lastNonLonelyTaskEnd(searchStart, currentTime, quietWindow,
-    longTasks) {
+function lastNonLonelyTaskEnd(searchStart, longTasks) {
   const minLonelyTaskTime = searchStart + 5000;
-  const quietWindowStart = currentTime - quietWindow;
-
-  // no lonely tasks allowed yet
-  if (quietWindowStart < minLonelyTaskTime) {
-    return longTasks.length === 0 ?
-      searchStart : longTasks[longTasks.length - 1].end;
-  }
 
   const maybeLonelyTasks = longTasks.filter((t) => t.start > minLonelyTaskTime);
   const regularTasks = longTasks.filter((t) => t.start <= minLonelyTaskTime);
-  const minEnd = regularTasks.length === 0 ?
-      searchStart : regularTasks[regularTasks.length - 1].end;
+  const quietWindowStart = regularTasks.length === 0 ?
+    searchStart : regularTasks[regularTasks.length - 1].end;
+  let minEnd = quietWindowStart;
 
   // no tasks in the quiet window
   if (maybeLonelyTasks.length === 0) {
     return minEnd;
   }
 
-  // search for the last non-lonely task
-  const lastTask = maybeLonelyTasks[maybeLonelyTasks.length - 1];
-  let currBlock = {start: lastTask.start, end: lastTask.end};
-  if (currBlock.end - currBlock.start > 250) {
-    return currBlock.end;
+  let currentQuietWindow = calcQuietWindow(minEnd - searchStart);
+  let currBlock = {start: quietWindowStart, end: minEnd};
+  for (let i = 0; i < maybeLonelyTasks.length; i++) {
+    const currTask = maybeLonelyTasks[i];
+
+    if (currTask.start < currBlock.end + 1000) {
+      // current task joins the current block
+      currBlock.end = currTask.end;
+    } else if (currTask.start > minEnd + currentQuietWindow) {
+      if (currBlock.end - currBlock.start > 250 && !currTask.redo) {
+        // current block is too big - start looking again
+        minEnd = Math.max(minEnd, currBlock.end);
+        currentQuietWindow = calcQuietWindow(minEnd - searchStart);
+        currTask.redo = true;
+        i--;
+        continue;
+      } else {
+        // current task is outside the quiet window - we can stop
+        break;
+      }
+    } else {
+      // current task starts a new block
+      currBlock = {start: currTask.start, end: currTask.end};
+    }
   }
 
-  for (let i = maybeLonelyTasks.length - 2; i >= 0; i--) {
-    const currTask = maybeLonelyTasks[i];
-    if (currTask.end < currBlock.start - 1000) {
-      currBlock = {start: currTask.start, end: currTask.end};
-    } else {
-      currBlock.start = currTask.start;
-    }
-    if (currBlock.end - currBlock.start > 250) {
-      return currBlock.end;
-    }
+  if (currBlock.end - currBlock.start > 250) {
+    // current block is too big
+    return Math.max(minEnd, currBlock.end);
   }
 
   return minEnd;

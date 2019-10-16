@@ -56,41 +56,154 @@ function testComputeLastKnownNetwork2Busy() {
 function testComputeFirstConsistentlyInteractive() {
   console.log('testComputeFirstConsistentlyInteractive');
 
+  function assert({searchStart, minValue, lastKnownNetwork2Busy, currentTime,
+      longTasks}, expected) {
+    console.assert(computeFirstConsistentlyInteractive(searchStart, minValue,
+      lastKnownNetwork2Busy, currentTime, longTasks) === expected);
+  }
+
   // If we have not had a long enough network 2-quiet period, FCI is null.
-  console.assert(computeFirstConsistentlyInteractive(
-      500, 3000, 1000, 5999, []) === null);
+  assert({
+      searchStart: 500,
+      minValue: 3000,
+      lastKnownNetwork2Busy: 1000,
+      currentTime: 5999,
+      longTasks: [],
+    }, null);
 
   // If we have not had a long enough main thread quiet period, FCI is null.
-  console.assert(computeFirstConsistentlyInteractive(
-      500, 500, 1000, 6001, [{start: 4000, end: 4060}]) === null);
+  assert({
+      searchStart: 500,
+      minValue: 500,
+      lastKnownNetwork2Busy: 1000,
+      currentTime: 6001,
+      longTasks: [{start: 4000, end: 4060}],
+    }, null);
 
   // If we have not had a long enough window since searchStart, FCI is null.
-  console.assert(computeFirstConsistentlyInteractive(
-      3000, 500, 1000, 6001, []) === null);
+  assert({
+      searchStart: 3000,
+      minValue: 500,
+      lastKnownNetwork2Busy: 1000,
+      currentTime: 6001,
+      longTasks: [],
+    }, null);
 
   // If there is no long task, FCI is searchStart.
-  console.assert(computeFirstConsistentlyInteractive(
-      4000, 3000, 1000, 10000, []) === 4000);
+  assert({
+      searchStart: 4000,
+      minValue: 3000,
+      lastKnownNetwork2Busy: 1000,
+      currentTime: 10000,
+      longTasks: [],
+    }, 4000);
 
   // searchStart can be before network quiet
-  console.assert(computeFirstConsistentlyInteractive(
-      750, 500, 1000, 6001, []) === 750);
+  assert({
+      searchStart: 750,
+      minValue: 500,
+      lastKnownNetwork2Busy: 1000,
+      currentTime: 6001,
+      longTasks: [],
+    }, 750);
 
   // minValue can be before network quiet.
-  console.assert(computeFirstConsistentlyInteractive(
-      300, 500, 1000, 6001, []) === 500);
+  assert({
+      searchStart: 300,
+      minValue: 500,
+      lastKnownNetwork2Busy: 1000,
+      currentTime: 6001,
+      longTasks: [],
+    }, 500);
 
   // FCI does not fire before minValue.
-  console.assert(computeFirstConsistentlyInteractive(500, 4000, 1000, 10000,
-      [{start: 2000, end: 2200}, {start: 2500, end: 2570}]) === 4000);
+  assert({
+      searchStart: 500,
+      minValue: 4000,
+      lastKnownNetwork2Busy: 1000,
+      currentTime: 10000,
+      longTasks: [{start: 2000, end: 2200}, {start: 2500, end: 2570}],
+    }, 4000);
 
   // FCI is the end of last long task.
-  console.assert(computeFirstConsistentlyInteractive(1500, 2000, 1000, 10000,
-      [{start: 2000, end: 2200}, {start: 2500, end: 2570}]) === 2570);
+  assert({
+      searchStart: 1500,
+      minValue: 2000,
+      lastKnownNetwork2Busy: 1000,
+      currentTime: 10000,
+      longTasks: [{start: 2000, end: 2200}, {start: 2500, end: 2570}],
+    }, 2570);
 
-  // FCI looks back from network quiet.
-  console.assert(computeFirstConsistentlyInteractive(500, 2000, 1000, 17000,
-      [{start: 2000, end: 2200}, {start: 10000, end: 10070}]) === 10070);
+  // FCI looks back from network quiet and ignores lonely task.
+  assert({
+      searchStart: 500,
+      minValue: 2000,
+      lastKnownNetwork2Busy: 1000,
+      currentTime: 17000,
+      longTasks: [
+        {start: 2000, end: 2200},
+        {start: 6600, end: 6700},
+        {start: 10000, end: 10070},
+      ],
+    }, 2200);
+
+  // FCI looks back from network quiet and ignores lonely task.
+  assert({
+      searchStart: 500,
+      minValue: 2000,
+      lastKnownNetwork2Busy: 1000,
+      currentTime: 17000,
+      longTasks: [
+        {start: 2000, end: 2200},
+        {start: 5480, end: 5520},
+        {start: 10000, end: 10070},
+      ],
+    }, 5520);
+
+  // FCI looks back from network quiet, and detects too long block
+  assert({
+      searchStart: 500,
+      minValue: 2000,
+      lastKnownNetwork2Busy: 1000,
+      currentTime: 17000,
+      longTasks: [
+        {start: 2000, end: 2200},
+        {start: 5480, end: 5520},
+        {start: 7600, end: 7700},
+        {start: 7750, end: 7900},
+        {start: 10000, end: 10070},
+      ],
+    }, 7900);
+
+  // FCI looks back from network quiet, and detects too long block
+  assert({
+      searchStart: 500,
+      minValue: 2000,
+      lastKnownNetwork2Busy: 1000,
+      currentTime: 17000,
+      longTasks: [
+        {start: 2000, end: 2200},
+        {start: 5480, end: 5520},
+        {start: 7600, end: 7700},
+        {start: 7750, end: 7900},
+        {start: 10000, end: 10270},
+      ],
+    }, 10270);
+
+  // FCI looks back from network quiet, and detects too long block
+  assert({
+      searchStart: 500,
+      minValue: 2000,
+      lastKnownNetwork2Busy: 1000,
+      currentTime: 17000,
+      longTasks: [
+        {start: 2000, end: 2200},
+        {start: 5480, end: 5520},
+        {start: 7600, end: 7700},
+        {start: 7750, end: 7900},
+        {start: 14000, end: 14270},
+      ],
+    }, 7900);
 
   console.log('Ran all tests.');
 }

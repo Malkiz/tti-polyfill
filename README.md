@@ -2,6 +2,7 @@ Time to Interactive Polyfill
 ============================
 
 A polyfill for the Time to Interactive metric. See the [metric definition](https://goo.gl/OSmrPk) for in-depth implementation details.
+Specifically, this is an implementation of `Definition 4: Combining proportional leniency and lonely tasks` from the linked doc above.
 
 ## Installation
 
@@ -59,6 +60,27 @@ The following table outlines the configuration options you can pass to the `getF
     <td><code>boolean</code></td>
     <td>
       When true (the default), a mutation observer is used to detect when added DOM elements will create additional network requests. This can be disabled to improve performance in cases where you know no additional request-creating DOM elements will be added.
+    </td>
+  </tr>
+  <tr valign="top">
+    <td><code>__tti</code></td>
+    <td><code>Object|null</code></td>
+    <td>
+      The object from the snippet, cotaining the original observer and entries. The object looks like this: <code>{ o /* observer */, e /* past entries */ }</code>
+    </td>
+  </tr>
+  <tr valign="top">
+    <td><code>setTimeout</code></td>
+    <td><code>Function|null</code></td>
+    <td>
+      Optional override for the <code>setTimeout</code> function.
+    </td>
+  </tr>
+  <tr valign="top">
+    <td><code>clearTimeout</code></td>
+    <td><code>Function|null</code></td>
+    <td>
+      Optional override for the <code>clearTimeout</code> function.
     </td>
   </tr>
 </table>
